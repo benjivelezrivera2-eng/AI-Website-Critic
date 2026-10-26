@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Website Inspector</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body data-view="overview" style="margin:0;background:#070d18;color:#f4f7fb;font-family:Segoe UI,sans-serif">
+  <div class="app-container inspector-shell">
+    <header class="app-header inspector-header">
+      <div class="header-logo">
+        <div class="header-text">
+          <h1>AI Website Inspector <span class="beta-badge">BETA</span></h1>
+        </div>
+      </div>
+      <span id="scan-state-dot" class="scan-state-dot" title="Waiting to scan"></span>
+    </header>
+
+    <nav class="panel-tabs icon-tabs" aria-label="Inspector sections" role="tablist">
+      <button type="button" class="panel-tab active" data-panel="overview" role="tab" aria-selected="true"><span class="nav-icon" aria-hidden="true">◉</span><span>Overview</span></button>
+      <button type="button" class="panel-tab" data-panel="issues" role="tab" aria-selected="false"><span class="nav-icon" aria-hidden="true">!</span><span>Issues</span><b id="issue-tab-count" class="tab-count">0</b></button>
+      <button type="button" class="panel-tab" data-panel="suggestions" role="tab" aria-selected="false"><span class="nav-icon" aria-hidden="true">✦</span><span>AI Suggestions</span></button>
+      <button type="button" class="panel-tab" data-panel="report" role="tab" aria-selected="false"><span class="nav-icon" aria-hidden="true">▤</span><span>Report</span></button>
+      <button type="button" class="panel-tab" data-panel="settings" role="tab" aria-selected="false"><span class="nav-icon" aria-hidden="true">⚙</span><span>Settings</span></button>
+    </nav>
+
+    <main class="app-content">
+      <section id="welcome-state" class="hidden">
+        <button id="initial-scan-btn" class="btn btn-primary" type="button">Inspect this page</button>
+        <button id="open-batch-btn" class="btn btn-secondary" type="button">Run a 5-site batch</button>
+      </section>
+      <section id="loading-state" class="state-panel loading-overlay hidden">
+        <div class="double-spinner"></div>
+        <h2>Reviewing the live page</h2>
+        <p>Checking the visible layout, wording, structure, and links.</p>
+      </section>
+
+      <section id="results-state" class="results-panel">
+        <section id="overview-panel" class="tab-panel" role="region" aria-label="Audit overview">
+          <div class="overview-grid">
+            <section class="dashboard-card score-card">
+              <p class="card-eyebrow">Website Score</p>
+              <div class="score-container">
+                <svg class="score-ring" viewBox="0 0 120 120" aria-label="Website score">
+                  <defs>
+                    <linearGradient id="score-gradient" x1="0" y1="1" x2="1" y2="0">
+                      <stop offset="0%" stop-color="#f5c542"/>
+                      <stop offset="48%" stop-color="#8fd14f"/>
+                      <stop offset="100%" stop-color="#3dd68c"/>
+                    </linearGradient>
+                  </defs>
+                  <circle class="score-ring-bg" cx="60" cy="60" r="50"/>
+                  <circle id="score-ring-progress" class="score-ring-progress" cx="60" cy="60" r="50" stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+                </svg>
+                <div class="score-text"><span id="score-value">--</span><span class="score-label">/100</span></div>
+              </div>
+              <div class="dashboard-summary">
+                <h3 id="rating-text">Not scanned yet</h3>
+                <p id="summary-text">Rescan to score this live page.</p>
+                <p id="review-status" class="review-status">Waiting for a scan</p>
+                <p id="ai-status" class="ai-status hidden" aria-live="polite"></p>
+              </div>
+            </section>
+            <section class="breakdown-card">
+              <div class="section-heading"><h2 class="section-title">Score Breakdown</h2></div>
+              <div id="breakdown-bars"></div>
+              <details class="why-score">
+                <summary>Why this score?</summary>
+                <h3 id="verdict-title">Run a scan to get a verdict.</h3>
+                <p id="verdict-copy">The inspector combines usability, conversion, content, and search evidence into one next move.</p>
+                <ol id="verdict-priorities" class="verdict-priorities"></ol>
+                <div id="grading-reasons"></div>
+              </details>
+            </section>
+          </div>
+        </section>
+
+        <section id="issues-panel" class="tab-panel" role="region" aria-label="Issues found">
+          <div id="filter-chips" class="filter-chips"></div>
+          <p id="issue-summary" class="visually-hidden">0 found</p>
+          <p id="filter-empty" class="filter-empty hidden">Nothing to fix in this area.</p>
+          <div id="categories-container" class="findings-section">
+            <p class="empty-copy">No issues yet. Rescan the page in front of you.</p>
+          </div>
+          <button id="view-all-issues" class="view-all" type="button">View all issues <span aria-hidden="true">→</span></button>
+        </section>
+
+        <section id="suggestions-panel" class="tab-panel suggestion-block" role="region" aria-label="AI suggestion preview">
+          <div class="suggestion-head">
+            <div>
+              <h2>AI Suggestion Preview</h2>
+              <span id="preview-summary">0 changes selected</span>
+            </div>
+            <div class="suggestion-actions">
+              <button id="restore-btn" class="btn btn-ghost" type="button">Undo All</button>
+              <button id="apply-page-btn" class="btn btn-primary" type="button">Apply on Page</button>
+            </div>
+          </div>
+          <div id="suggestions-container" class="suggestions-list"></div>
+        </section>
+
+        <section id="report-panel" class="tab-panel export-block" role="region" aria-label="Audit report">
+          <h2>Export Report</h2>
+          <div id="report-content" class="report-content"></div>
+          <div class="report-actions">
+            <button id="download-html-btn" class="btn btn-ghost" type="button">PDF</button>
+            <button id="download-csv-btn" class="btn btn-ghost" type="button">CSV</button>
+            <button id="copy-report-btn" class="btn btn-ghost" type="button">Copy Link</button>
+          </div>
+          <p id="copy-report-status" class="small-status hidden" aria-live="polite"></p>
+        </section>
+
+        <section id="compare-panel" class="tab-panel compare-block" role="region" aria-label="Before and after comparison">
+          <h2>Before / after</h2>
+          <div class="comparison-grid">
+            <article class="comparison-card"><span>Before audit</span><strong id="before-score">--</strong><small id="before-summary">Run an inspection first.</small><small>Phone width: <b id="mobile-before-score">--</b></small></article>
+            <article class="comparison-card comparison-after"><span>After accepted previews</span><strong id="after-score">--</strong><small id="after-summary">Accept a visible change to compare it.</small><small>Phone width: <b id="mobile-after-score">--</b></small></article>
+          </div>
+          <button id="recheck-btn" type="button" class="btn btn-primary">Recheck changes</button>
+          <p id="comparison-note" class="comparison-note">This comparison only reflects accepted temporary previews. Refreshing the website restores its original source.</p>
+          <section id="mobile-score-card" class="dashboard-card mobile-score-card hidden">
+            <div class="section-heading"><h2>Phone-width score</h2><strong id="mobile-score-value">--</strong></div>
+            <p id="mobile-status">Waiting for a phone-width review.</p>
+            <details><summary>Why this phone-width score?</summary><div id="mobile-grading-reasons"></div></details>
+            <button id="close-mobile-view-btn" type="button" class="btn btn-secondary hidden">Close phone view</button>
+          </section>
+        </section>
+
+        <section id="settings-panel" class="tab-panel settings-section" role="region" aria-label="Inspector settings">
+          <h2>Settings</h2>
+          <label class="setting-row" for="mobile-audit-toggle"><span><strong>Also review phone width</strong><small>Desktop is always reviewed. Turn this on to open a temporary narrow window during the next audit.</small></span><input id="mobile-audit-toggle" type="checkbox"></label>
+          <label class="setting-row" for="marker-toggle"><span><strong>Show numbered markers</strong><small>Place each finding next to the matching page element.</small></span><input id="marker-toggle" type="checkbox" checked></label>
+          <button id="settings-restore-btn" class="btn btn-secondary" type="button">Restore every preview</button>
+          <button id="clear-btn" class="btn btn-text" type="button">Clear markers</button>
+          <section id="batch-panel" class="batch-block" role="region" aria-label="Five site batch audit">
+            <h2>5-site batch</h2>
+            <p class="section-description">Paste five public website addresses. Do not use private or signed-in pages.</p>
+            <div class="batch-inputs">
+              <label>Site 1<input id="batch-url-1" type="url" inputmode="url" placeholder="https://example.com"></label>
+              <label>Site 2<input id="batch-url-2" type="url" inputmode="url" placeholder="https://example.com"></label>
+              <label>Site 3<input id="batch-url-3" type="url" inputmode="url" placeholder="https://example.com"></label>
+              <label>Site 4<input id="batch-url-4" type="url" inputmode="url" placeholder="https://example.com"></label>
+              <label>Site 5<input id="batch-url-5" type="url" inputmode="url" placeholder="https://example.com"></label>
+            </div>
+            <button id="run-batch-btn" class="btn btn-primary" type="button">Run 5-site audit</button>
+            <button id="cancel-batch-btn" class="btn btn-secondary" type="button">Stop batch</button>
+            <p id="batch-status" class="small-status hidden" aria-live="polite"></p>
+            <div id="batch-results" class="batch-results"></div>
+            <div id="batch-actions" class="report-actions hidden"><button id="download-batch-csv-btn" class="btn btn-secondary" type="button">Batch CSV</button><button id="download-batch-html-btn" class="btn btn-primary" type="button">Print batch report</button></div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <footer class="action-bar">
+      <span id="last-scanned" class="last-scanned">Not scanned yet</span>
+      <button id="rescan-btn" class="btn btn-primary rescan-btn" type="button">Rescan</button>
+    </footer>
+  </div>
+  <script src="grading.js"></script>
+  <script src="reporting.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
