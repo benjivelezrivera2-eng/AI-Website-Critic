@@ -1,5 +1,9 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Chrome extension
+
+The live page inspector is in the `extension` folder. Load that folder as an unpacked Chrome extension, then start its helper with `node server.js` inside `extension/backend`. The helper uses the OpenAI key in `extension/backend/.env` and listens at `http://127.0.0.1:8787`. Setup details are in `extension/README.md`.
+
 ## Getting Started
 
 First, run the development server:
